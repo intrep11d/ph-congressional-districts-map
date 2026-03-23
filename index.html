@@ -89,11 +89,66 @@
   .result-row:hover { background: rgba(255,255,255,0.03); }
   .result-name { font-size: 12px; font-weight: 600; color: #f0f0f0; }
   .result-dist { font-size: 11px; color: #888; margin-top: 1px; }
+
+  /* ── Mobile toggle button ── */
+  #panel-toggle {
+    display: none;
+    position: fixed; bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: #16213e; color: #f0f0f0;
+    border: 1px solid #0f3460; border-radius: 20px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    transition: background 0.15s;
+  }
+  #panel-toggle:active { background: #0f3460; }
+
+  /* ── Drag handle inside sidebar on mobile ── */
+  #drag-handle {
+    display: none;
+    width: 36px; height: 4px; border-radius: 2px;
+    background: #4a9edd; margin: 10px auto 4px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+
+    #map { flex: 1; width: 100%; }
+
+    #sidebar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      width: 100%; height: 65vh;
+      border-left: none; border-top: 1px solid #0f3460;
+      border-radius: 16px 16px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 900;
+    }
+    #sidebar.open { transform: translateY(0); }
+
+    #drag-handle { display: block; }
+
+    #panel-toggle { display: block; }
+    #panel-toggle.panel-open { bottom: calc(65vh + 12px); }
+
+    /* Larger touch targets */
+    #search { padding: 10px 12px; font-size: 14px; }
+    .legend-item { padding: 5px 7px; font-size: 12px; }
+    .result-row { padding: 10px 0; }
+
+    /* Prevent zoom on input focus on iOS */
+    input, select, textarea { font-size: 16px !important; }
+  }
 </style>
 </head>
 <body>
 <div id="map"></div>
+<button id="panel-toggle" aria-label="Toggle info panel">&#9650; Districts</button>
 <div id="sidebar">
+  <div id="drag-handle"></div>
   <div id="sidebar-header">
     <h1>House of Representatives<br>20th Congress</h1>
     <p class="sub">Click a district on the map</p>
@@ -329,6 +384,49 @@ document.getElementById("search").addEventListener("input", function() {
       </div>`).join('')}
   `;
 });
+
+// ── Mobile panel toggle ──
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('panel-toggle');
+
+function openPanel() {
+  sidebar.classList.add('open');
+  toggleBtn.classList.add('panel-open');
+  toggleBtn.innerHTML = '&#9660; Close';
+}
+function closePanel() {
+  sidebar.classList.remove('open');
+  toggleBtn.classList.remove('panel-open');
+  toggleBtn.innerHTML = '&#9650; Districts';
+}
+
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closePanel() : openPanel();
+});
+
+// Open panel automatically when a district is clicked on mobile
+const origShowInfo = window.showDistrictInfo;
+map.on('click', 'districts-fill', () => {
+  if (window.innerWidth <= 768) openPanel();
+});
+
+// Allow dragging the panel down to close it
+let dragStartY = 0;
+let dragging = false;
+const dragHandle = document.getElementById('drag-handle');
+
+dragHandle.addEventListener('touchstart', e => {
+  dragStartY = e.touches[0].clientY;
+  dragging = true;
+}, { passive: true });
+
+dragHandle.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const dy = e.touches[0].clientY - dragStartY;
+  if (dy > 60) { closePanel(); dragging = false; }
+}, { passive: true });
+
+dragHandle.addEventListener('touchend', () => { dragging = false; });
 </script>
 </body>
 </html>
