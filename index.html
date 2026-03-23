@@ -135,13 +135,37 @@
     #panel-toggle.panel-open { bottom: calc(65vh + 12px); }
 
     /* Larger touch targets */
-    #search { padding: 10px 12px; font-size: 14px; }
+    #search { padding: 10px 12px; }
     .legend-item { padding: 5px 7px; font-size: 12px; }
     .result-row { padding: 10px 0; }
 
     /* Prevent zoom on input focus on iOS */
     input, select, textarea { font-size: 16px !important; }
+
+    /* When a district is selected: hide search+legend+header, let info-panel fill the space */
+    #sidebar.district-selected #search-wrap,
+    #sidebar.district-selected #legend,
+    #sidebar.district-selected #sidebar-header { display: none; }
+
+    /* When no district is selected: hide legend+header, show search */
+    #sidebar:not(.district-selected) #legend,
+    #sidebar:not(.district-selected) #sidebar-header { display: none; }
+
+    /* Back button shown only in district-selected state */
+    #mobile-back { display: flex; }
   }
+
+  #mobile-back {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #0f3460;
+    flex-shrink: 0;
+    background: none; border-top: none; border-left: none; border-right: none;
+    color: #4a9edd; font-size: 13px; cursor: pointer;
+    width: 100%; text-align: left;
+  }
+  #mobile-back:active { background: rgba(74,158,221,0.1); }
 </style>
 </head>
 <body>
@@ -149,6 +173,7 @@
 <button id="panel-toggle" aria-label="Toggle info panel">&#9650; Districts</button>
 <div id="sidebar">
   <div id="drag-handle"></div>
+  <button id="mobile-back">&#8592; Back to search</button>
   <div id="sidebar-header">
     <h1>House of Representatives<br>20th Congress</h1>
     <p class="sub">Click a district on the map</p>
@@ -388,6 +413,9 @@ document.getElementById("search").addEventListener("input", function() {
 // ── Mobile panel toggle ──
 const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('panel-toggle');
+const mobileBack = document.getElementById('mobile-back');
+
+function isMobile() { return window.innerWidth <= 768; }
 
 function openPanel() {
   sidebar.classList.add('open');
@@ -396,6 +424,7 @@ function openPanel() {
 }
 function closePanel() {
   sidebar.classList.remove('open');
+  sidebar.classList.remove('district-selected');
   toggleBtn.classList.remove('panel-open');
   toggleBtn.innerHTML = '&#9650; Districts';
 }
@@ -404,10 +433,20 @@ toggleBtn.addEventListener('click', () => {
   sidebar.classList.contains('open') ? closePanel() : openPanel();
 });
 
-// Open panel automatically when a district is clicked on mobile
-const origShowInfo = window.showDistrictInfo;
+// Open panel in district-selected mode when a district is clicked on mobile
 map.on('click', 'districts-fill', () => {
-  if (window.innerWidth <= 768) openPanel();
+  if (isMobile()) {
+    sidebar.classList.add('district-selected');
+    openPanel();
+  }
+});
+
+// Back button clears district-selected state
+mobileBack.addEventListener('click', () => {
+  sidebar.classList.remove('district-selected');
+  document.getElementById('info-panel').innerHTML =
+    '<p class="placeholder">Click any district on the map to see its representative.</p>';
+  document.getElementById('search').value = '';
 });
 
 // Allow dragging the panel down to close it
